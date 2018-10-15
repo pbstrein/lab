@@ -5,7 +5,13 @@
 
 cc_library(
     name = "python",
-    hdrs = glob(["include/python2.7/*.h"]),
-    includes = ["include/python2.7"],
+    hdrs = glob([
+        "PYINCDIR/*.h",
+        "PYLIBDIR/site-packages/numpy/core/include/numpy/*.h",
+    ]),
+    includes = [
+        "PYINCDIR",
+        "PYLIBDIR/site-packages/numpy/core/include",
+    ],
     visibility = ["//visibility:public"],
 )
