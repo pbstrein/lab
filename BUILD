@@ -985,6 +985,15 @@ py_binary(
     deps = ["@six_archive//:six"],
 )
 
+py_binary(
+    name = "my_python_random_agent",
+    srcs = ["python/my_random_agent.py"],
+    data = [":deepmind_lab.so"],
+    main = "python/my_random_agent.py",
+    visibility = ["//python/tests:__subpackages__"],
+    deps = ["@six_archive//:six"],
+)
+
 LOAD_TEST_SCRIPTS = [
     level_script[len("game_scripts/levels/"):-len(".lua")]
     for level_script in glob(
