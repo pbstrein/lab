@@ -221,7 +221,11 @@ def _run_envs(env, embedding_net, policy, experience_queue, reward_queue, num_ro
 
 
 def _prepare_numpy(ndarray, device):
-    return torch.from_numpy(ndarray).float().unsqueeze(0).to(device)
+    # adds a batch dimension to the array
+    #result = torch.from_numpy(ndarray).float().unsqueeze(0).to(device)
+    print("ndarray: ", ndarray)
+    result = torch.from_numpy(ndarray).float().view(1, -1).to(device)
+    return result
 
 
 def _prepare_tensor_batch(tensor, device):

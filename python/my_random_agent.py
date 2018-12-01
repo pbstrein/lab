@@ -34,6 +34,8 @@ def _action(*entries):
 class DiscretizedRandomAgent(object):
   """Simple agent for DeepMind Lab."""
 
+  rewards = 0
+
   ACTIONS = {
       'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
       'look_right': _action(20, 0, 0, 0, 0, 0, 0),
