@@ -19,12 +19,12 @@ def MakeDir(path):
     except:
         pass
 
-lab = False
+lab = True
 load_model = False
 train = True
 test_display = True
 test_write_video = False
-path_work_dir = "~/rl_3d/"
+path_work_dir = "~Documents/lab/python/"
 vizdoom_path = "~/ViZDoom/"
 vizdoom_scenario = vizdoom_path + "scenarios/simpler_basic.wad"
 
