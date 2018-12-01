@@ -124,7 +124,7 @@ class DMLabPolicyNetwork(nn.Module):
         Outputs action distribution (categorical distribution) of shape [batch, action_dim],
         as well as a sampled action (optional).
         """
-        #print("x in policy net: ", x.size())
+        print("x in policy net: ", x.size())
         scores = self._net(x)
         probs = self._softmax(scores)
 
@@ -175,7 +175,7 @@ def main():
     actions = game_instance.get_actions()
     policy = DMLabPolicyNetwork(state_dim=screen_size)
     value = DMLabValueNetwork(state_dim=screen_size)
-    ppo(factory, policy, value, multinomial_likelihood, epochs=1000, rollouts_per_epoch=100, max_episode_length=200,
+    ppo(factory, policy, value, multinomial_likelihood, epochs=1, rollouts_per_epoch=1, max_episode_length=200,
         gamma=0.99, policy_epochs=5, batch_size=256)
 
 
