@@ -5,6 +5,8 @@ from torch import nn
 
 from rl import *
 
+import deepmind_lab
+
 
 class DMLabEnvironmentFactory(EnvironmentFactory):
     def __init__(self):
@@ -23,11 +25,14 @@ class DMLabEnvironment(RLEnvironment):
 	  #'fps': str(fps),
 	  #'width': str(width),
 	  #'height': str(height)
+	   #'fps': str(60),
+           #'width': str(640),
+           #'height': str(480),
 	   'fps': str(60),
-           'width': str(640),
-           'height' str(480),
+           'width': str(80),
+           'height': str(80),
 	}
-	self._env = deepmind_lab.Lab('tests/empty_room_test', ['RGB_INTERLEAVED'], config=config)
+	self._env = deepmind_lab.Lab('tests/empty_room_test', ['RGB'], config=config)
 
     def step(self, action):
         """action is type np.ndarray of shape [1] and type np.uint8.
@@ -41,7 +46,9 @@ class DMLabEnvironment(RLEnvironment):
 
     def reset(self):
         """Returns observation (np.ndarray)"""
-        return self._env.reset()
+        self._env.reset()
+        state = self._env.observations()
+        return state['RGB']
 
 
 class DMLabPolicyNetwork(nn.Module):
