@@ -34,8 +34,8 @@ def run(level_script, config, num_episodes):
   env.reset()
 
   observation_spec = env.observation_spec()
-  print('Observation spec:')
-  pprint.pprint(observation_spec)
+  #print('Observation spec:')
+  #pprint.pprint(observation_spec)
 
   action_spec = env.action_spec()
   print('Action spec:')
@@ -52,6 +52,7 @@ def run(level_script, config, num_episodes):
 
   score = 0
   for _ in six.moves.range(num_episodes):
+    print("num_episodes: ", num_episodes)
     while env.is_running():
       # Advance the environment 4 frames while executing the action.
       reward = env.step(action, num_steps=4)
@@ -69,7 +70,7 @@ if __name__ == '__main__':
                       help='The level that is to be played. Levels'
                       'are Lua scripts, and a script called \"name\" means that'
                       'a file \"assets/game_scripts/name.lua is loaded.')
-  parser.add_argument('-s', '--level_settings', type=str, default=None,
+  parser.add_argument('-s', '--level_settings', type=str, default=[],
                       action='append',
                       help='Applies an opaque key-value setting. The setting is'
                       'available to the level script. This flag may be provided'
@@ -87,6 +88,8 @@ if __name__ == '__main__':
   # Convert list of level setting strings (of the form "key=value") into a
   # `config` key/value dictionary.
   config = {k:v for k, v in [s.split('=') for s in args.level_settings]}
+
+  print("num_episodes: ", args.num_episodes)
 
   if args.runfiles_path:
     deepmind_lab.set_runfiles_path(args.runfiles_path)

@@ -3,6 +3,8 @@ import numpy as np
 import torch
 from torch import nn
 
+import argparse
+
 from rl import *
 
 import deepmind_lab
@@ -57,7 +59,10 @@ class DMLabEnvironment(RLEnvironment):
            'width': str(height),
            'height': str(width),
 	}
-	self._env = deepmind_lab.Lab('tests/empty_room_test', ['RGB'], config=config)
+        #room = 'tests/empty_room_test'
+        room = 'demos/set_instruction'
+	#self._env = deepmind_lab.Lab(room, ['RGB_INTERLEAVED'], config=config)
+	self._env = deepmind_lab.Lab(room, ['RGB'], config=config)
 
         self._action_spec = self._env.action_spec()
         self.indices = {a['name']: i for i, a in enumerate(self._action_spec)}
@@ -78,12 +83,14 @@ class DMLabEnvironment(RLEnvironment):
         reward = self._env.step(action_choice, num_steps=self._num_steps)
         terminated = not self._env.is_running()
         return state['RGB'], reward, terminated
+        #return state['RGB_INTERLEAVED'], reward, terminated
 
     def reset(self):
         """Returns observation (np.ndarray)"""
         self._env.reset()
         state = self._env.observations()
         state = state['RGB']
+        #state = state['RGB_INTERLEAVED']
         return state
 
     def get_screen_size(self):
@@ -101,6 +108,9 @@ class DMLabEnvironment(RLEnvironment):
         if not self._action_spec:
             self._action_spec = self._env.action_spec()
         return self._action_spec
+
+    def get_num_actions(self):
+        return len(self.ACTIONS.keys())
 
 
 class DMLabPolicyNetwork(nn.Module):
@@ -210,21 +220,64 @@ class DMLabValueNetwork(nn.Module):
         return value
 
 
-def main():
-    fps = 60
-    height = 80
-    width = 80
+def main(length, width, height, fps, level, train):
+    print("length: ", length)
+    print("width: ", width)
+    print("height: ", height)
+    print("fps: ", fps)
+    print("level: ", level)
+    print("train: ", train)
+
     channels = 3
     #screen_size = height * width * 3
     factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width)
     game_instance = factory.new()
     screen_size = game_instance.get_screen_size()
     actions = game_instance.get_actions()
-    policy = DMLabPolicyNetwork(state_dim=screen_size)
+    print("actions: ", actions)
+    num_actions = game_instance.get_num_actions()
+    print("num_actions: ", num_actions)
+    policy = DMLabPolicyNetwork(state_dim=screen_size, action_dim=num_actions)
     value = DMLabValueNetwork(state_dim=screen_size)
-    ppo(factory, policy, value, multinomial_likelihood, epochs=1, rollouts_per_epoch=1, max_episode_length=200,
-        gamma=0.99, policy_epochs=5, batch_size=256)
+    if train:
+        ppo(factory, policy, value, multinomial_likelihood, epochs=1, rollouts_per_epoch=1, max_episode_length=200,
+            gamma=0.99, policy_epochs=5, batch_size=256)
+    else:
+
+        pass
+
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--train', type=bool, default=False,
+                      help='Tell the agent to train or just run')
+    parser.add_argument('--length', type=int, default=1000,
+                      help='Number of steps to run the agent')
+    parser.add_argument('--width', type=int, default=80,
+                      help='Horizontal size of the observations')
+    parser.add_argument('--height', type=int, default=80,
+                      help='Vertical size of the observations')
+    parser.add_argument('--fps', type=int, default=60,
+                      help='Number of frames per second')
+    parser.add_argument('--runfiles_path', type=str, default=None,
+                      help='Set the runfiles path to find DeepMind Lab data')
+    parser.add_argument('--level_script', type=str,
+                      default='demos/set_instruction',
+                      help='The environment level script to load')
+    #parser.add_argument('--record', type=str, default=None,
+                      #help='Record the run to a demo file')
+    #parser.add_argument('--demo', type=str, default=None,
+                      #help='Play back a recorded demo file')
+    #parser.add_argument('--demofiles', type=str, default=None,
+                      #help='Directory for demo files')
+    #parser.add_argument('--video', type=str, default=None,
+                      #help='Record the demo run as a video')
+
+    args = parser.parse_args()
+    #if args.runfiles_path:
+        #deepmind_lab.set_runfiles_path(args.runfiles_path)
+    #run(args.length, args.width, args.height, args.fps, args.level_script,
+      #args.record, args.demo, args.demofiles, args.video)
+    main(args.length, args.width, args.height, args.fps, args.level_script,
+            args.train)

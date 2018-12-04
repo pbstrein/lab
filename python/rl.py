@@ -116,6 +116,8 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
         for x in threads:
             x.join()
 
+        print("GOT HERE!")
+
         # Collect the experience
         rollouts = list(experience_queue.queue)
         avg_r = sum(reward_queue.queue) / reward_queue.qsize()
@@ -148,7 +150,7 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
                     state = embedding_net(state)
 
                 # Calculate the ratio term
-                print("state: ", state.size())
+                #print("state: ", state.size())
                 current_action_dist = policy(state, False)
                 current_likelihood = likelihood_fn(current_action_dist, old_action)
                 old_likelihood = likelihood_fn(old_action_dist, old_action)

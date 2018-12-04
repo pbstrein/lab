@@ -975,6 +975,14 @@ cc_binary(
         "@python_system//:python",
     ],
 )
+py_binary(
+    name = "example",
+    srcs = ["examples/game_main.py"],
+    data = [":deepmind_lab.so"],
+    main = "examples/game_main.py",
+    visibility = ["//python/tests:__subpackages__"],
+    deps = ["@six_archive//:six"],
+)
 
 py_binary(
     name = "python_random_agent",
