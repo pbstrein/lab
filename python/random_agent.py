@@ -138,6 +138,15 @@ class SpringAgent(object):
 
 
 def run(length, width, height, fps, level, record, demo, demofiles, video):
+  print("length: ", length)
+  print("width: ", width)
+  print("height: ", height)
+  print("fps: ", fps)
+  print("level: ", level)
+  print("record: ", record)
+  print("demo: ", demo)
+  print("demofiles: ", demofiles)
+  print("video: ", video)
   """Spins up an environment and runs the random agent."""
   config = {
       'fps': str(fps),
@@ -152,7 +161,10 @@ def run(length, width, height, fps, level, record, demo, demofiles, video):
     config['demofiles'] = demofiles
   if video:
     config['video'] = video
-  env = deepmind_lab.Lab(level, ['RGB_INTERLEAVED'], config=config)
+  #env = deepmind_lab.Lab(level, ['RGB_INTERLEAVED'], config=config)
+  print("level: ", level)
+  print("config: ", config)
+  env = deepmind_lab.Lab(level, ['RGB'], config=config)
 
   env.reset()
 
@@ -168,7 +180,8 @@ def run(length, width, height, fps, level, record, demo, demofiles, video):
       env.reset()
       agent.reset()
     obs = env.observations()
-    action = agent.step(reward, obs['RGB_INTERLEAVED'])
+    #action = agent.step(reward, obs['RGB_INTERLEAVED'])
+    action = agent.step(reward, obs['RGB'])
     reward = env.step(action, num_steps=1)
 
   print('Finished after %i steps. Total reward received is %f'

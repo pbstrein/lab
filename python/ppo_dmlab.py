@@ -1,3 +1,8 @@
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import gym
 import numpy as np
 import torch
@@ -64,10 +69,10 @@ class DMLabEnvironment(RLEnvironment):
 	#self._env = deepmind_lab.Lab(room, ['RGB_INTERLEAVED'], config=config)
 	self._env = deepmind_lab.Lab(room, ['RGB'], config=config)
 
-        self._action_spec = self._env.action_spec()
-        self.indices = {a['name']: i for i, a in enumerate(self._action_spec)}
-        self.mins = np.array([a['min'] for a in self._action_spec])
-        self.maxs = np.array([a['max'] for a in self._action_spec])
+        #self._action_spec = self._env.action_spec()
+        #self.indices = {a['name']: i for i, a in enumerate(self._action_spec)}
+        #self.mins = np.array([a['min'] for a in self._action_spec])
+        #self.maxs = np.array([a['max'] for a in self._action_spec])
 
     def step(self, action):
         """action is type np.ndarray of shape [1] and type np.uint8.
@@ -92,6 +97,12 @@ class DMLabEnvironment(RLEnvironment):
         state = state['RGB']
         #state = state['RGB_INTERLEAVED']
         return state
+
+    def is_running(self):
+        return self._env.is_running()
+
+    def get_observation(self):
+        return self._env.observations()['RGB']
 
     def get_screen_size(self):
         self._env.reset()
@@ -228,23 +239,68 @@ def main(length, width, height, fps, level, train):
     print("level: ", level)
     print("train: ", train)
 
-    channels = 3
-    #screen_size = height * width * 3
-    factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width)
-    game_instance = factory.new()
-    screen_size = game_instance.get_screen_size()
-    actions = game_instance.get_actions()
-    print("actions: ", actions)
-    num_actions = game_instance.get_num_actions()
-    print("num_actions: ", num_actions)
-    policy = DMLabPolicyNetwork(state_dim=screen_size, action_dim=num_actions)
-    value = DMLabValueNetwork(state_dim=screen_size)
     if train:
-        ppo(factory, policy, value, multinomial_likelihood, epochs=1, rollouts_per_epoch=1, max_episode_length=200,
+        channels = 3
+        #screen_size = height * width * 3
+        factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width)
+        game_instance = factory.new()
+        screen_size = game_instance.get_screen_size()
+        actions = game_instance.get_actions()
+        print("actions: ", actions)
+        num_actions = game_instance.get_num_actions()
+        print("num_actions: ", num_actions)
+        policy = DMLabPolicyNetwork(state_dim=screen_size, action_dim=num_actions)
+        value = DMLabValueNetwork(state_dim=screen_size)
+        ppo(factory, policy, value, multinomial_likelihood, epochs=5, rollouts_per_epoch=5, max_episode_length=1000,
             gamma=0.99, policy_epochs=5, batch_size=256)
     else:
+	config = {
+	   'fps': str(fps),
+           'width': str(height),
+           'height': str(width),
+	}
+        print("level: ", level)
+        print("config: ", config)
+        channels = 3
+        #screen_size = height * width * 3
+        factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width)
+        game_instance = factory.new()
+        screen_size = game_instance.get_screen_size()
+        actions = game_instance.get_actions()
+        print("actions: ", actions)
+        num_actions = game_instance.get_num_actions()
+        print("num_actions: ", num_actions)
+        policy = DMLabPolicyNetwork(state_dim=screen_size, action_dim=num_actions)
+        value = DMLabValueNetwork(state_dim=screen_size)
+        #env = deepmind_lab.Lab(level, ['RGB'], config=config)
+        #env.reset()
+        game_instance.reset()
 
-        pass
+        # Starts the random spring agent. As a simpler alternative, we could also
+        # use DiscretizedRandomAgent().
+        #agent = SpringAgent(env.action_spec())
+
+        reward = 0
+
+        for _ in six.moves.range(length):
+            #if not env.is_running():
+            if not game_instance.is_running():
+                print('Environment stopped early')
+                env.reset()
+                #agent.reset()
+            #obs = env.observations()
+            obs = game_instance.get_observation()
+            #action = agent.step(reward, obs['RGB_INTERLEAVED'])
+            #action = agent.step(reward, obs['RGB'])
+            print("obs: ", obs)
+            result = torch.from_numpy(obs).float().unsqueeze(0)
+            probs, actions = policy(result)
+            #reward = env.step(actions, num_steps=1)
+            next_state, new_reward, terminated = game_instance.step(actions)
+            reward += new_reward
+
+        print('Finished after %i steps. Total reward received is %f'
+            % (length, reward))
 
 
 
