@@ -108,8 +108,22 @@ class DMLabPolicyNetwork(nn.Module):
 
     def __init__(self, state_dim=19200, action_dim=4):
         super(DMLabPolicyNetwork, self).__init__()
+        self._conv_net_out_channels = 64
+
+        # convolutional network to read in the pixels
+        self._conv_net = nn.Sequential(
+                 
+            nn.Conv2d(3, 16, kernel_size=(3,3), padding=(1,1)),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=(3,3), padding=(1,1)),
+            nn.ReLU(),
+            nn.Conv2d(32, self._conv_net_out_channels, kernel_size=(3,3), padding=(1,1)),
+            nn.ReLU(),
+        )
+
+        # linear network to make the policy from the output of the convolution
         self._net = nn.Sequential(
-            nn.Linear(state_dim, 10),
+            nn.Linear(self._conv_net_out_channels*80*80, 10),
             nn.ReLU(),
             nn.Linear(10, 10),
             nn.ReLU(),
@@ -124,8 +138,11 @@ class DMLabPolicyNetwork(nn.Module):
         Outputs action distribution (categorical distribution) of shape [batch, action_dim],
         as well as a sampled action (optional).
         """
-        print("x in policy net: ", x.size())
-        scores = self._net(x)
+        #print("x in policy net: ", x.size())
+        conv_value = self._conv_net(x) # run convolutions on the pixels
+        b, c, h, w = conv_value.size()
+        conv_value = conv_value.view(b, c*h*w) # flatten to be fed into the linear network
+        scores = self._net(conv_value)
         probs = self._softmax(scores)
 
         if not get_action:
@@ -146,6 +163,30 @@ class DMLabValueNetwork(nn.Module):
 
     def __init__(self, state_dim=19200):
         super(DMLabValueNetwork, self).__init__()
+        self._conv_net_out_channels = 64
+
+        # convolutional network to read in the pixels
+        self._conv_net = nn.Sequential(
+                 
+            nn.Conv2d(3, 16, kernel_size=(3,3), padding=(1,1)),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=(3,3), padding=(1,1)),
+            nn.ReLU(),
+            nn.Conv2d(32, self._conv_net_out_channels, kernel_size=(3,3), padding=(1,1)),
+            nn.ReLU(),
+        )
+
+        # linear network to evaluate the value
+        self._net = nn.Sequential(
+            nn.Linear(self._conv_net_out_channels*80*80, 10),
+            nn.ReLU(),
+            nn.Linear(10, 10),
+            nn.ReLU(),
+            nn.Linear(10, 10),
+            nn.ReLU(),
+            nn.Linear(10, 1)
+        )
+        '''
         self._net = nn.Sequential(
             nn.Linear(state_dim, 10),
             nn.ReLU(),
@@ -155,12 +196,18 @@ class DMLabValueNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(10, 1)
         )
+        '''
 
     def forward(self, x):
         """Receives an observation of shape [batch, state_dim].
         Returns the value of each state, in shape [batch, 1]
         """
-        return self._net(x)
+        conv_value = self._conv_net(x) # run convolutions on the pixels
+        b, c, h, w = conv_value.size()
+        conv_value = conv_value.view(b, c*h*w) # flatten to be fed into the linear network
+        value = self._net(conv_value)
+        #return self._net(x)
+        return value
 
 
 def main():
