@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import gym
 import numpy as np
 import torch
 from torch import nn
@@ -127,7 +126,7 @@ class DMLabEnvironment(RLEnvironment):
 class DMLabPolicyNetwork(nn.Module):
     """Policy Network for Deepmind Lab"""
 
-    def __init__(self, state_dim=19200, action_dim=4):
+    def __init__(self, screen_height, screen_width, state_dim=19200, action_dim=4):
         super(DMLabPolicyNetwork, self).__init__()
         self._conv_net_out_channels = 64
 
@@ -144,7 +143,7 @@ class DMLabPolicyNetwork(nn.Module):
 
         # linear network to make the policy from the output of the convolution
         self._net = nn.Sequential(
-            nn.Linear(self._conv_net_out_channels*80*80, 10),
+            nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
             nn.ReLU(),
             nn.Linear(10, 10),
             nn.ReLU(),
@@ -182,7 +181,7 @@ class DMLabPolicyNetwork(nn.Module):
 class DMLabValueNetwork(nn.Module):
     """Approximates the value of a particular DeepMind Lab state."""
 
-    def __init__(self, state_dim=19200):
+    def __init__(self, screen_height, screen_width, state_dim=19200):
         super(DMLabValueNetwork, self).__init__()
         self._conv_net_out_channels = 64
 
@@ -199,7 +198,7 @@ class DMLabValueNetwork(nn.Module):
 
         # linear network to evaluate the value
         self._net = nn.Sequential(
-            nn.Linear(self._conv_net_out_channels*80*80, 10),
+            nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
             nn.ReLU(),
             nn.Linear(10, 10),
             nn.ReLU(),
@@ -249,8 +248,8 @@ def main(length, width, height, fps, level, train):
         print("actions: ", actions)
         num_actions = game_instance.get_num_actions()
         print("num_actions: ", num_actions)
-        policy = DMLabPolicyNetwork(state_dim=screen_size, action_dim=num_actions)
-        value = DMLabValueNetwork(state_dim=screen_size)
+        policy = DMLabPolicyNetwork(height, width, state_dim=screen_size, action_dim=num_actions)
+        value = DMLabValueNetwork(height, width, state_dim=screen_size)
         ppo(factory, policy, value, multinomial_likelihood, epochs=5, rollouts_per_epoch=5, max_episode_length=1000,
             gamma=0.99, policy_epochs=5, batch_size=256)
     else:
@@ -270,8 +269,8 @@ def main(length, width, height, fps, level, train):
         print("actions: ", actions)
         num_actions = game_instance.get_num_actions()
         print("num_actions: ", num_actions)
-        policy = DMLabPolicyNetwork(state_dim=screen_size, action_dim=num_actions)
-        value = DMLabValueNetwork(state_dim=screen_size)
+        policy = DMLabPolicyNetwork(height, width, state_dim=screen_size, action_dim=num_actions)
+        value = DMLabValueNetwork(height, width, state_dim=screen_size)
         #env = deepmind_lab.Lab(level, ['RGB'], config=config)
         #env.reset()
         game_instance.reset()
@@ -292,7 +291,6 @@ def main(length, width, height, fps, level, train):
             obs = game_instance.get_observation()
             #action = agent.step(reward, obs['RGB_INTERLEAVED'])
             #action = agent.step(reward, obs['RGB'])
-            print("obs: ", obs)
             result = torch.from_numpy(obs).float().unsqueeze(0)
             probs, actions = policy(result)
             #reward = env.step(actions, num_steps=1)

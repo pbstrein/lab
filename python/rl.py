@@ -8,7 +8,8 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 import numpy as np
-from queue import Queue
+#from queue import Queue
+from Queue import Queue
 
 
 class RLEnvironment(object):
