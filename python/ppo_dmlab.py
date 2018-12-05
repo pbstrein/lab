@@ -13,6 +13,8 @@ from rl import *
 
 import deepmind_lab
 import six
+import os
+
 
 
 class DMLabEnvironmentFactory(EnvironmentFactory):
@@ -81,7 +83,6 @@ class DMLabEnvironment(RLEnvironment):
         state = self._env.observations()
         # turn the action index into an array of actions
 	action_choice = self.ACTION_LIST[action.item()]
-	
 
         #reward = self._env.step(action.item(), num_steps=self._num_steps)
         reward = self._env.step(action_choice, num_steps=self._num_steps)
@@ -230,17 +231,44 @@ class DMLabValueNetwork(nn.Module):
         return value
 
 
-def main(length, width, height, fps, level, train):
+def main(length, width, height, fps, level, train, save_model_loc, load_model_loc):
     print("length: ", length)
     print("width: ", width)
     print("height: ", height)
     print("fps: ", fps)
     print("level: ", level)
     print("train: ", train)
+    print("save_model_loc: ", save_model_loc)
+    print("load_model_loc: ", load_model_loc)
+
+    factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width)
+    game_instance = factory.new()
+    screen_size = game_instance.get_screen_size()
+    actions = game_instance.get_actions()
+    print("actions: ", actions)
+    num_actions = game_instance.get_num_actions()
+    print("num_actions: ", num_actions)
+    game_instance.reset()
+
+    policy = DMLabPolicyNetwork(height, width, state_dim=screen_size, action_dim=num_actions)
+    value = DMLabValueNetwork(height, width, state_dim=screen_size)
+
+    policy_file_name = 'policy-network'
+    value_file_name = 'value-network'
+
+    if load_model_loc:
+        POLICY_LOC = load_model_loc + policy_file_name
+        VALUE_LOC = load_model_loc + value_file_name
+
+        print("loading policy network from : ", POLICY_LOC)
+        policy.load_state_dict(torch.load(POLICY_LOC))
+
+        print("loading value network from: ", VALUE_LOC)
+        value.load_state_dict(torch.load(VALUE_LOC))
+
 
     if train:
-        channels = 3
-        #screen_size = height * width * 3
+        '''
         factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width)
         game_instance = factory.new()
         screen_size = game_instance.get_screen_size()
@@ -248,52 +276,40 @@ def main(length, width, height, fps, level, train):
         print("actions: ", actions)
         num_actions = game_instance.get_num_actions()
         print("num_actions: ", num_actions)
+        game_instance.reset()
         policy = DMLabPolicyNetwork(height, width, state_dim=screen_size, action_dim=num_actions)
         value = DMLabValueNetwork(height, width, state_dim=screen_size)
-        ppo(factory, policy, value, multinomial_likelihood, epochs=5, rollouts_per_epoch=5, max_episode_length=1000,
-            gamma=0.99, policy_epochs=5, batch_size=256)
+        '''
+        ppo(factory, policy, value, multinomial_likelihood, epochs=2, rollouts_per_epoch=1, max_episode_length=length,
+            gamma=0.99, policy_epochs=1, batch_size=256, lr=1e-4, weight_decay=0.0)
+
+        if save_model_loc:
+            POLICY_SAVE_LOC = save_model_loc + policy_file_name
+            VALUE_SAVE_LOC = save_model_loc + value_file_name
+
+            print("saving policy network to: ", POLICY_SAVE_LOC)
+            torch.save(policy.state_dict(), POLICY_SAVE_LOC)
+
+            print("saving value network to: ", VALUE_SAVE_LOC)
+            torch.save(value.state_dict(), VALUE_SAVE_LOC)
+
     else:
 	config = {
 	   'fps': str(fps),
            'width': str(height),
            'height': str(width),
 	}
-        print("level: ", level)
-        print("config: ", config)
-        channels = 3
-        #screen_size = height * width * 3
-        factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width)
-        game_instance = factory.new()
-        screen_size = game_instance.get_screen_size()
-        actions = game_instance.get_actions()
-        print("actions: ", actions)
-        num_actions = game_instance.get_num_actions()
-        print("num_actions: ", num_actions)
-        policy = DMLabPolicyNetwork(height, width, state_dim=screen_size, action_dim=num_actions)
-        value = DMLabValueNetwork(height, width, state_dim=screen_size)
-        #env = deepmind_lab.Lab(level, ['RGB'], config=config)
-        #env.reset()
-        game_instance.reset()
-
-        # Starts the random spring agent. As a simpler alternative, we could also
-        # use DiscretizedRandomAgent().
-        #agent = SpringAgent(env.action_spec())
-
         reward = 0
-
         for _ in six.moves.range(length):
-            #if not env.is_running():
             if not game_instance.is_running():
                 print('Environment stopped early')
                 env.reset()
                 #agent.reset()
-            #obs = env.observations()
             obs = game_instance.get_observation()
-            #action = agent.step(reward, obs['RGB_INTERLEAVED'])
-            #action = agent.step(reward, obs['RGB'])
-            result = torch.from_numpy(obs).float().unsqueeze(0)
+            result = torch.from_numpy(obs).float().unsqueeze(0) # add batch dimension so it can go into the network
             probs, actions = policy(result)
-            #reward = env.step(actions, num_steps=1)
+            print("probs: ", probs)
+            print("actions: ", actions)
             next_state, new_reward, terminated = game_instance.step(actions)
             reward += new_reward
 
@@ -306,6 +322,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--train', type=bool, default=False,
                       help='Tell the agent to train or just run')
+    parser.add_argument('--save-model', type=str, default=None,
+                      help='Directory where the pytorch model will be saved')
+    parser.add_argument('--load-model', type=str, default=None,
+                      help='Directory where the pytorch model will be loaded from')
     parser.add_argument('--length', type=int, default=1000,
                       help='Number of steps to run the agent')
     parser.add_argument('--width', type=int, default=80,
@@ -329,9 +349,5 @@ if __name__ == '__main__':
                       #help='Record the demo run as a video')
 
     args = parser.parse_args()
-    #if args.runfiles_path:
-        #deepmind_lab.set_runfiles_path(args.runfiles_path)
-    #run(args.length, args.width, args.height, args.fps, args.level_script,
-      #args.record, args.demo, args.demofiles, args.video)
     main(args.length, args.width, args.height, args.fps, args.level_script,
-            args.train)
+            args.train, args.save_model, args.load_model)
