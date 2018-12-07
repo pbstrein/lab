@@ -16,7 +16,6 @@ import six
 import os
 
 
-
 class DMLabEnvironmentFactory(EnvironmentFactory):
     def __init__(self, fps=60, height=480, width=640):
         self.fps = fps
@@ -143,6 +142,7 @@ class DMLabPolicyNetwork(nn.Module):
         )
 
         # linear network to make the policy from the output of the convolution
+        '''
         self._net = nn.Sequential(
             nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
             nn.ReLU(),
@@ -151,6 +151,16 @@ class DMLabPolicyNetwork(nn.Module):
             nn.Linear(10, 10),
             nn.ReLU(),
             nn.Linear(10, action_dim)
+        )
+        '''
+        self._net = nn.Sequential(
+            nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 100),
+            nn.ReLU(),
+            nn.Linear(100, 100),
+            nn.ReLU(),
+            nn.Linear(100, 100),
+            nn.ReLU(),
+            nn.Linear(100, action_dim)
         )
         self._softmax = nn.Softmax(dim=1)
 
@@ -164,6 +174,7 @@ class DMLabPolicyNetwork(nn.Module):
         b, c, h, w = conv_value.size()
         conv_value = conv_value.view(b, c*h*w) # flatten to be fed into the linear network
         scores = self._net(conv_value)
+
         probs = self._softmax(scores)
 
         if not get_action:
@@ -199,6 +210,16 @@ class DMLabValueNetwork(nn.Module):
 
         # linear network to evaluate the value
         self._net = nn.Sequential(
+            nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 100),
+            nn.ReLU(),
+            nn.Linear(100, 100),
+            nn.ReLU(),
+            nn.Linear(100, 100),
+            nn.ReLU(),
+            nn.Linear(100, 1)
+        )
+        '''
+        self._net = nn.Sequential(
             nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
             nn.ReLU(),
             nn.Linear(10, 10),
@@ -207,6 +228,7 @@ class DMLabValueNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(10, 1)
         )
+        '''
         '''
         self._net = nn.Sequential(
             nn.Linear(state_dim, 10),
@@ -280,8 +302,10 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
         policy = DMLabPolicyNetwork(height, width, state_dim=screen_size, action_dim=num_actions)
         value = DMLabValueNetwork(height, width, state_dim=screen_size)
         '''
+        #ppo(factory, policy, value, multinomial_likelihood, epochs=5, rollouts_per_epoch=5, max_episode_length=length,
+            #gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2)
         ppo(factory, policy, value, multinomial_likelihood, epochs=2, rollouts_per_epoch=1, max_episode_length=length,
-            gamma=0.99, policy_epochs=1, batch_size=256, lr=1e-4, weight_decay=0.0)
+            gamma=0.99, policy_epochs=2, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2, data_loader_threads=2)
 
         if save_model_loc:
             POLICY_SAVE_LOC = save_model_loc + policy_file_name
@@ -292,6 +316,7 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
 
             print("saving value network to: ", VALUE_SAVE_LOC)
             torch.save(value.state_dict(), VALUE_SAVE_LOC)
+
 
     else:
 	config = {

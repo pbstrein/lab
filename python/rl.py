@@ -121,7 +121,9 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
 
         # Collect the experience
         rollouts = list(experience_queue.queue)
-        avg_r = sum(reward_queue.queue) / reward_queue.qsize()
+        avg_r = 0
+        if reward_queue.qsize() > 0:
+            avg_r = sum(reward_queue.queue) / reward_queue.qsize()
         loop.set_description('avg reward: % 6.2f' % (avg_r))
 
         # Make gifs
