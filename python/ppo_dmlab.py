@@ -15,6 +15,8 @@ import deepmind_lab
 import six
 import os
 
+import networks as nets
+
 
 class DMLabEnvironmentFactory(EnvironmentFactory):
     def __init__(self, fps=60, height=480, width=640):
@@ -126,25 +128,24 @@ class DMLabEnvironment(RLEnvironment):
 class DMLabPolicyNetwork(nn.Module):
     """Policy Network for Deepmind Lab"""
 
-    def __init__(self, screen_height, screen_width, state_dim=19200, action_dim=4):
+    #def __init__(self, screen_height, screen_width, state_dim=19200, action_dim=4):
+    def __init__(self, input_dim, state_dim=19200, action_dim=4):
         super(DMLabPolicyNetwork, self).__init__()
-        self._conv_net_out_channels = 64
+        self._conv_net_out_channels = 256 
+	self._input_dim = input_dim
 
         # convolutional network to read in the pixels
         self._conv_net = nn.Sequential(
-                 
-            nn.Conv2d(3, 16, kernel_size=(3,3), padding=(1,1)),
+            nn.Conv2d(3, 64, kernel_size=(3,3), padding=(1,1)),
             nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=(3,3), padding=(1,1)),
+            nn.Conv2d(64, 64, kernel_size=(3,3), padding=(1,1)),
             nn.ReLU(),
-            nn.Conv2d(32, self._conv_net_out_channels, kernel_size=(3,3), padding=(1,1)),
+            nn.Conv2d(64, self._conv_net_out_channels, kernel_size=(3,3), padding=(1,1)),
             nn.ReLU(),
         )
-
-        # linear network to make the policy from the output of the convolution
-        '''
         self._net = nn.Sequential(
-            nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
+            #nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
+	    nn.Linear(self._input_dim, 10),
             nn.ReLU(),
             nn.Linear(10, 10),
             nn.ReLU(),
@@ -162,7 +163,9 @@ class DMLabPolicyNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(100, action_dim)
         )
+        '''
         self._softmax = nn.Softmax(dim=1)
+        
 
     def forward(self, x, get_action=True):
         """Receives input x of shape [batch, state_dim].
@@ -170,10 +173,12 @@ class DMLabPolicyNetwork(nn.Module):
         as well as a sampled action (optional).
         """
         #print("x in policy net: ", x.size())
-        conv_value = self._conv_net(x) # run convolutions on the pixels
-        b, c, h, w = conv_value.size()
-        conv_value = conv_value.view(b, c*h*w) # flatten to be fed into the linear network
-        scores = self._net(conv_value)
+        #conv_value = self._conv_net(x) # run convolutions on the pixels
+        #b, c, h, w = conv_value.size()
+        #conv_value = conv_value.view(b, c*h*w) # flatten to be fed into the linear network
+        #scores = self._net(conv_value)
+
+	scores = self._net(x)
 
         probs = self._softmax(scores)
 
@@ -193,9 +198,11 @@ class DMLabPolicyNetwork(nn.Module):
 class DMLabValueNetwork(nn.Module):
     """Approximates the value of a particular DeepMind Lab state."""
 
-    def __init__(self, screen_height, screen_width, state_dim=19200):
+    #def __init__(self, screen_height, screen_width, state_dim=19200):
+    def __init__(self, input_dim, state_dim=19200):
         super(DMLabValueNetwork, self).__init__()
         self._conv_net_out_channels = 64
+	self._input_dim = input_dim
 
         # convolutional network to read in the pixels
         self._conv_net = nn.Sequential(
@@ -208,6 +215,7 @@ class DMLabValueNetwork(nn.Module):
             nn.ReLU(),
         )
 
+        '''
         # linear network to evaluate the value
         self._net = nn.Sequential(
             nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 100),
@@ -220,7 +228,8 @@ class DMLabValueNetwork(nn.Module):
         )
         '''
         self._net = nn.Sequential(
-            nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
+            #nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
+	    nn.Linear(self._input_dim, 10),
             nn.ReLU(),
             nn.Linear(10, 10),
             nn.ReLU(),
@@ -228,7 +237,6 @@ class DMLabValueNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(10, 1)
         )
-        '''
         '''
         self._net = nn.Sequential(
             nn.Linear(state_dim, 10),
@@ -245,10 +253,11 @@ class DMLabValueNetwork(nn.Module):
         """Receives an observation of shape [batch, state_dim].
         Returns the value of each state, in shape [batch, 1]
         """
-        conv_value = self._conv_net(x) # run convolutions on the pixels
-        b, c, h, w = conv_value.size()
-        conv_value = conv_value.view(b, c*h*w) # flatten to be fed into the linear network
-        value = self._net(conv_value)
+        #conv_value = self._conv_net(x) # run convolutions on the pixels
+        #b, c, h, w = conv_value.size()
+        #conv_value = conv_value.view(b, c*h*w) # flatten to be fed into the linear network
+        #value = self._net(conv_value)
+	value = self._net(x)
         #return self._net(x)
         return value
 
@@ -272,15 +281,25 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
     print("num_actions: ", num_actions)
     game_instance.reset()
 
-    policy = DMLabPolicyNetwork(height, width, state_dim=screen_size, action_dim=num_actions)
-    value = DMLabValueNetwork(height, width, state_dim=screen_size)
+    conv = nets.ConvNetwork128(height, width, 3)
 
+    #policy = DMLabPolicyNetwork(height, width, state_dim=screen_size, action_dim=num_actions)
+    #value = DMLabValueNetwork(height, width, state_dim=screen_size)
+
+    policy = DMLabPolicyNetwork(conv.get_output_dim(), action_dim=num_actions)
+    value = DMLabValueNetwork(conv.get_output_dim())
+
+    conv_file_name = 'conv-network'
     policy_file_name = 'policy-network'
     value_file_name = 'value-network'
 
     if load_model_loc:
+        CONV_LOC = load_model_loc + conv_file_name
         POLICY_LOC = load_model_loc + policy_file_name
         VALUE_LOC = load_model_loc + value_file_name
+
+        print("loading conv network from : ", CONV_LOC)
+        conv.load_state_dict(torch.load(CONV_LOC))
 
         print("loading policy network from : ", POLICY_LOC)
         policy.load_state_dict(torch.load(POLICY_LOC))
@@ -304,12 +323,18 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
         '''
         #ppo(factory, policy, value, multinomial_likelihood, epochs=5, rollouts_per_epoch=5, max_episode_length=length,
             #gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2)
-        ppo(factory, policy, value, multinomial_likelihood, epochs=2, rollouts_per_epoch=1, max_episode_length=length,
-            gamma=0.99, policy_epochs=2, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2, data_loader_threads=2)
+        #ppo(factory, policy, value, multinomial_likelihood, epochs=2, rollouts_per_epoch=1, max_episode_length=length,
+            #gamma=0.99, policy_epochs=2, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2, data_loader_threads=2)
+        ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=3, rollouts_per_epoch=5, max_episode_length=length,
+            gamma=0.99, policy_epochs=5, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=1, data_loader_threads=2)
 
         if save_model_loc:
+            CONV_SAVE_LOC = save_model_loc + conv_file_name
             POLICY_SAVE_LOC = save_model_loc + policy_file_name
             VALUE_SAVE_LOC = save_model_loc + value_file_name
+
+            print("saving conv network to: ", CONV_SAVE_LOC)
+            torch.save(conv.state_dict(), CONV_SAVE_LOC)
 
             print("saving policy network to: ", POLICY_SAVE_LOC)
             torch.save(policy.state_dict(), POLICY_SAVE_LOC)
@@ -331,7 +356,10 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
                 env.reset()
                 #agent.reset()
             obs = game_instance.get_observation()
-            result = torch.from_numpy(obs).float().unsqueeze(0) # add batch dimension so it can go into the network
+	    obs = torch.from_numpy(obs).float().unsqueeze(0)
+	    result = conv(obs)
+            #result = torch.from_numpy(result).float().unsqueeze(0) # add batch dimension so it can go into the network
+            #result = torch.from_numpy(obs).float().unsqueeze(0) # add batch dimension so it can go into the network
             probs, actions = policy(result)
             print("probs: ", probs)
             print("actions: ", actions)
