@@ -68,7 +68,7 @@ def get_log_p(data, mu, sigma):
 def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=1000, rollouts_per_epoch=100,
         max_episode_length=200, gamma=0.99, policy_epochs=5, batch_size=256, epsilon=0.2, environment_threads=1,
         data_loader_threads=1, device=torch.device('cpu'), lr=1e-3, betas=(0.9, 0.999), weight_decay=0.01, gif_name='',
-        gif_epochs=0, csv_file='latest_run.csv'):
+        gif_epochs=0, csv_file='latest_run.csv', save_model=None):
     # Clear the csv file
     with open(csv_file, 'w') as f:
         f.write('avg_reward, value_loss, policy_loss')
@@ -187,6 +187,25 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
             f.write('%6.2f, %6.2f, %6.2f\n' % (avg_r, avg_val_loss, avg_policy_loss))
         print()
         loop.update(1)
+
+        if save_model:
+            embedding_file_name = 'conv-network'
+            policy_file_name = 'policy-network'
+            value_file_name = 'value-network'
+            EMBEDDING_SAVE_LOC = save_model + embedding_file_name
+            POLICY_SAVE_LOC = save_model + policy_file_name
+            VALUE_SAVE_LOC = save_model + value_file_name
+
+            if embedding_net:
+                print("saving embedding_net network to: ", EMBEDDING_SAVE_LOC)
+                torch.save(embedding_net.state_dict(), EMBEDDING_SAVE_LOC)
+
+                print("saving policy network to: ", POLICY_SAVE_LOC)
+                torch.save(policy.state_dict(), POLICY_SAVE_LOC)
+
+                print("saving value network to: ", VALUE_SAVE_LOC)
+                torch.save(value.state_dict(), VALUE_SAVE_LOC)
+
 
 
 def _calculate_returns(trajectory, gamma):

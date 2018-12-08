@@ -34,11 +34,13 @@ def _action(*entries):
 
 class DMLabEnvironment(RLEnvironment):
 
+    obv_type = 'RGB_INTERLEAVED'
+
     ACTIONS = {
-      'look_left': _action(-20, 0, 0, 0, 0, 0, 0),
-      'look_right': _action(20, 0, 0, 0, 0, 0, 0),
-      'look_up': _action(0, 10, 0, 0, 0, 0, 0),
-      'look_down': _action(0, -10, 0, 0, 0, 0, 0),
+      'look_left': _action(-40, 0, 0, 0, 0, 0, 0),
+      'look_right': _action(40, 0, 0, 0, 0, 0, 0),
+      'look_up': _action(0, 20, 0, 0, 0, 0, 0),
+      'look_down': _action(0, -20, 0, 0, 0, 0, 0),
       'strafe_left': _action(0, 0, -1, 0, 0, 0, 0),
       'strafe_right': _action(0, 0, 1, 0, 0, 0, 0),
       'forward': _action(0, 0, 0, 1, 0, 0, 0),
@@ -56,20 +58,17 @@ class DMLabEnvironment(RLEnvironment):
         #self._env = gym.make('CartPole-v0')
         self._num_steps = 1
 	config = {
-	  #'fps': str(fps),
-	  #'width': str(width),
-	  #'height': str(height)
-	   #'fps': str(60),
-           #'width': str(640),
-           #'height': str(480),
 	   'fps': str(fps),
            'width': str(height),
            'height': str(width),
 	}
+
         #room = 'tests/empty_room_test'
-        room = 'demos/set_instruction'
+        #room = 'demos/set_instruction'
+        room = 'seekavoid_arena_01'
 	#self._env = deepmind_lab.Lab(room, ['RGB_INTERLEAVED'], config=config)
-	self._env = deepmind_lab.Lab(room, ['RGB'], config=config)
+	#self._env = deepmind_lab.Lab(room, ['RGB'], config=config)
+	self._env = deepmind_lab.Lab(room, [self.obv_type], config=config)
 
         #self._action_spec = self._env.action_spec()
         #self.indices = {a['name']: i for i, a in enumerate(self._action_spec)}
@@ -87,15 +86,19 @@ class DMLabEnvironment(RLEnvironment):
 
         #reward = self._env.step(action.item(), num_steps=self._num_steps)
         reward = self._env.step(action_choice, num_steps=self._num_steps)
+        reward *= 10
         terminated = not self._env.is_running()
-        return state['RGB'], reward, terminated
+        return state[self.obv_type], reward, terminated
+        #return state['RGB'], reward, terminated
         #return state['RGB_INTERLEAVED'], reward, terminated
 
     def reset(self):
         """Returns observation (np.ndarray)"""
         self._env.reset()
         state = self._env.observations()
-        state = state['RGB']
+        #state = state['RGB']
+        state = state[self.obv_type]
+        print("state:" , state.shape)
         #state = state['RGB_INTERLEAVED']
         return state
 
@@ -103,13 +106,15 @@ class DMLabEnvironment(RLEnvironment):
         return self._env.is_running()
 
     def get_observation(self):
-        return self._env.observations()['RGB']
+        return self._env.observations()[self.obv_type]
+        #return self._env.observations()['RGB']
 
     def get_screen_size(self):
         self._env.reset()
         observation_list = self._env.observation_spec()
         for val in observation_list:
-            if val['name'] == 'RGB':
+            #if val['name'] == 'RGB':
+            if val['name'] == self.obv_type:
                 obv = val
                 break
         result =  np.prod([x for x in val['shape']])
@@ -145,13 +150,13 @@ class DMLabPolicyNetwork(nn.Module):
         )
         self._net = nn.Sequential(
             #nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
-	    nn.Linear(self._input_dim, 10),
+	    nn.Linear(self._input_dim, 100),
             nn.ReLU(),
-            nn.Linear(10, 10),
+            nn.Linear(100, 100),
             nn.ReLU(),
-            nn.Linear(10, 10),
+            nn.Linear(100, 100),
             nn.ReLU(),
-            nn.Linear(10, action_dim)
+            nn.Linear(100, action_dim)
         )
         '''
         self._net = nn.Sequential(
@@ -229,13 +234,13 @@ class DMLabValueNetwork(nn.Module):
         '''
         self._net = nn.Sequential(
             #nn.Linear(self._conv_net_out_channels*screen_height*screen_width, 10),
-	    nn.Linear(self._input_dim, 10),
+	    nn.Linear(self._input_dim, 100),
             nn.ReLU(),
-            nn.Linear(10, 10),
+            nn.Linear(100, 100),
             nn.ReLU(),
-            nn.Linear(10, 10),
+            nn.Linear(100, 100),
             nn.ReLU(),
-            nn.Linear(10, 1)
+            nn.Linear(100, 1)
         )
         '''
         self._net = nn.Sequential(
@@ -325,8 +330,8 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
             #gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2)
         #ppo(factory, policy, value, multinomial_likelihood, epochs=2, rollouts_per_epoch=1, max_episode_length=length,
             #gamma=0.99, policy_epochs=2, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2, data_loader_threads=2)
-        ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=3, rollouts_per_epoch=5, max_episode_length=length,
-            gamma=0.99, policy_epochs=5, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=1, data_loader_threads=2)
+        ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=100, rollouts_per_epoch=7, max_episode_length=length,
+            gamma=0.99, policy_epochs=5, batch_size=256, lr=1e-3, weight_decay=0.0, environment_threads=1, data_loader_threads=2, save_model=save_model_loc)
 
         if save_model_loc:
             CONV_SAVE_LOC = save_model_loc + conv_file_name
