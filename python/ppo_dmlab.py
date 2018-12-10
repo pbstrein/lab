@@ -172,7 +172,7 @@ class DMLabPolicyNetwork(nn.Module):
         self._softmax = nn.Softmax(dim=1)
         
 
-    def forward(self, x, get_action=True):
+    def forward(self, x, get_action=True, explore=False):
         """Receives input x of shape [batch, state_dim].
         Outputs action distribution (categorical distribution) of shape [batch, action_dim],
         as well as a sampled action (optional).
@@ -184,6 +184,9 @@ class DMLabPolicyNetwork(nn.Module):
         #scores = self._net(conv_value)
 
 	scores = self._net(x)
+
+        if explore:
+            scores /= 10 # shrink by a factor of 10 so the scores are closer together, forces the network to choose more randomly
 
         probs = self._softmax(scores)
 
@@ -326,12 +329,17 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
         policy = DMLabPolicyNetwork(height, width, state_dim=screen_size, action_dim=num_actions)
         value = DMLabValueNetwork(height, width, state_dim=screen_size)
         '''
+        csv_loc = save_model_loc + "train-details.csv"
         #ppo(factory, policy, value, multinomial_likelihood, epochs=5, rollouts_per_epoch=5, max_episode_length=length,
             #gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2)
         #ppo(factory, policy, value, multinomial_likelihood, epochs=2, rollouts_per_epoch=1, max_episode_length=length,
             #gamma=0.99, policy_epochs=2, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2, data_loader_threads=2)
-        ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=100, rollouts_per_epoch=7, max_episode_length=length,
-            gamma=0.99, policy_epochs=5, batch_size=256, lr=1e-3, weight_decay=0.0, environment_threads=1, data_loader_threads=2, save_model=save_model_loc)
+        ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=10, rollouts_per_epoch=7, max_episode_length=length,
+            gamma=0.99, policy_epochs=5, batch_size=256, lr=1e-3, weight_decay=0.0, environment_threads=2, data_loader_threads=2, save_model=save_model_loc,
+            csv_file=csv_loc)
+        #ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=1, rollouts_per_epoch=1, max_episode_length=length,
+            #gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-3, weight_decay=0.0, environment_threads=2, data_loader_threads=2, save_model=save_model_loc,
+            #csv_file=csv_loc)
 
         if save_model_loc:
             CONV_SAVE_LOC = save_model_loc + conv_file_name

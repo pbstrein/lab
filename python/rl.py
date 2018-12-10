@@ -11,6 +11,8 @@ import numpy as np
 #from queue import Queue
 from Queue import Queue
 
+import os
+
 
 class RLEnvironment(object):
     """An RL Environment, used for wrapping environments to run PPO on."""
@@ -70,8 +72,9 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
         data_loader_threads=1, device=torch.device('cpu'), lr=1e-3, betas=(0.9, 0.999), weight_decay=0.01, gif_name='',
         gif_epochs=0, csv_file='latest_run.csv', save_model=None):
     # Clear the csv file
+    print("cwd: ", os.getcwd())
     with open(csv_file, 'w') as f:
-        f.write('avg_reward, value_loss, policy_loss')
+        f.write('epoch, avg_reward, value_loss, policy_loss,\n')
 
     # Move networks to the correct device
     policy = policy.to(device)
@@ -184,17 +187,20 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
             loop.set_description(
                 'avg reward: % 6.2f, value loss: % 6.2f, policy loss: % 6.2f' % (avg_r, avg_val_loss, avg_policy_loss))
         with open(csv_file, 'a+') as f:
-            f.write('%6.2f, %6.2f, %6.2f\n' % (avg_r, avg_val_loss, avg_policy_loss))
+            f.write('%d, %6.2f, %6.2f, %6.2f,\n' % (e, avg_r, avg_val_loss, avg_policy_loss))
         print()
         loop.update(1)
 
         if save_model:
+            info_file_name = 'training-info'
             embedding_file_name = 'conv-network'
             policy_file_name = 'policy-network'
             value_file_name = 'value-network'
             EMBEDDING_SAVE_LOC = save_model + embedding_file_name
             POLICY_SAVE_LOC = save_model + policy_file_name
             VALUE_SAVE_LOC = save_model + value_file_name
+            INFO_SAVE_LOC = save_model + info_file_name
+
 
             if embedding_net:
                 print("saving embedding_net network to: ", EMBEDDING_SAVE_LOC)
@@ -205,6 +211,12 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
 
                 print("saving value network to: ", VALUE_SAVE_LOC)
                 torch.save(value.state_dict(), VALUE_SAVE_LOC)
+
+                print("Appending information to the info file: ", INFO_SAVE_LOC)
+                with open(INFO_SAVE_LOC, 'a') as f:
+                    f.write("Saving after epoch {}\n".format(e))
+                    f.write('%6.2f, %6.2f, %6.2f,\n' % (avg_r, avg_val_loss, avg_policy_loss))
+                    f.write('\n')
 
 
 
