@@ -70,7 +70,7 @@ def get_log_p(data, mu, sigma):
 def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=1000, rollouts_per_epoch=100,
         max_episode_length=200, gamma=0.99, policy_epochs=5, batch_size=256, epsilon=0.2, environment_threads=1,
         data_loader_threads=1, device=torch.device('cpu'), lr=1e-3, betas=(0.9, 0.999), weight_decay=0.01, gif_name='',
-        gif_epochs=0, csv_file='latest_run.csv', save_model=None):
+        gif_epochs=0, csv_file='latest_run.csv', save_model=None, reward_threshold=None):
     # Clear the csv file
     print("cwd: ", os.getcwd())
     with open(csv_file, 'w') as f:
@@ -129,6 +129,10 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
             avg_r = sum(reward_queue.queue) / reward_queue.qsize()
         loop.set_description('avg reward: % 6.2f' % (avg_r))
 
+        if reward_threshold and avg_r > reward_threshold:
+            print("Exceeded reward threshold of {}, stopping training".format(reward_threshold))
+            break
+
         # Make gifs
         if gif_epochs and e % gif_epochs == 0:
             _make_gif(rollouts[0], gif_name + '%d.gif' % e)
@@ -143,6 +147,7 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
         for _ in range(policy_epochs):
             avg_policy_loss = 0
             avg_val_loss = 0
+            iteration = 0
             for state, old_action_dist, old_action, reward, ret in data_loader:
                 state = _prepare_tensor_batch(state, device)
                 old_action_dist = _prepare_tensor_batch(old_action_dist, device)
@@ -158,6 +163,9 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
                 # Calculate the ratio term
                 #print("state: ", state.size())
                 current_action_dist = policy(state, False)
+                if iteration == 0:
+                    print("Probs while training: ", current_action_dist[0])
+
                 current_likelihood = likelihood_fn(current_action_dist, old_action)
                 old_likelihood = likelihood_fn(old_action_dist, old_action)
                 ratio = (current_likelihood / old_likelihood)
@@ -180,6 +188,7 @@ def ppo(env_factory, policy, value, likelihood_fn, embedding_net=None, epochs=10
                 loss = policy_loss + val_loss
                 loss.backward()
                 optimizer.step()
+                iteration += 1
 
             # Log info
             avg_val_loss /= len(data_loader)

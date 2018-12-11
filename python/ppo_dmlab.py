@@ -64,8 +64,8 @@ class DMLabEnvironment(RLEnvironment):
 	}
 
         #room = 'tests/empty_room_test'
-        #room = 'demos/set_instruction'
-        room = 'seekavoid_arena_01'
+        room = 'demos/set_instruction'
+        #room = 'seekavoid_arena_01'
 	#self._env = deepmind_lab.Lab(room, ['RGB_INTERLEAVED'], config=config)
 	#self._env = deepmind_lab.Lab(room, ['RGB'], config=config)
 	self._env = deepmind_lab.Lab(room, [self.obv_type], config=config)
@@ -334,9 +334,9 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
             #gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2)
         #ppo(factory, policy, value, multinomial_likelihood, epochs=2, rollouts_per_epoch=1, max_episode_length=length,
             #gamma=0.99, policy_epochs=2, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2, data_loader_threads=2)
-        ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=10, rollouts_per_epoch=7, max_episode_length=length,
-            gamma=0.99, policy_epochs=5, batch_size=256, lr=1e-3, weight_decay=0.0, environment_threads=2, data_loader_threads=2, save_model=save_model_loc,
-            csv_file=csv_loc)
+        ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=75, rollouts_per_epoch=4, max_episode_length=length,
+            gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-6, weight_decay=0.0, environment_threads=1, data_loader_threads=2, save_model=save_model_loc,
+            csv_file=csv_loc, reward_threshold=650)
         #ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=1, rollouts_per_epoch=1, max_episode_length=length,
             #gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-3, weight_decay=0.0, environment_threads=2, data_loader_threads=2, save_model=save_model_loc,
             #csv_file=csv_loc)
