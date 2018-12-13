@@ -27,7 +27,7 @@ local MAP_ENTITIES = [[
 *****
 *A A*
 * * *
-*P*A*
+*P*G*
 *****
 ]]
 
