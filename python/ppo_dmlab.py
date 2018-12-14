@@ -19,14 +19,15 @@ import networks as nets
 
 
 class DMLabEnvironmentFactory(EnvironmentFactory):
-    def __init__(self, fps=60, height=480, width=640, map=None):
+    def __init__(self, fps=60, height=480, width=640, room=None):
         self.fps = fps
         self.height = height
         self.width = width
+        self.room = room
         super(DMLabEnvironmentFactory, self).__init__()
 
     def new(self):
-        return DMLabEnvironment(fps=self.fps, height=self.height, width=self.height)
+        return DMLabEnvironment(fps=self.fps, height=self.height, width=self.height, room=self.room)
 
 
 def _action(*entries):
