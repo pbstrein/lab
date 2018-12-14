@@ -64,8 +64,10 @@ class DMLabEnvironment(RLEnvironment):
 	}
 
         #room = 'tests/empty_room_test'
-        room = 'demos/set_instruction'
+        #room = 'demos/set_instruction'
         #room = 'seekavoid_arena_01'
+        room = 'nav_chasm'
+        #room = nav_chasm
 	#self._env = deepmind_lab.Lab(room, ['RGB_INTERLEAVED'], config=config)
 	#self._env = deepmind_lab.Lab(room, ['RGB'], config=config)
 	self._env = deepmind_lab.Lab(room, [self.obv_type], config=config)
@@ -87,6 +89,7 @@ class DMLabEnvironment(RLEnvironment):
         #reward = self._env.step(action.item(), num_steps=self._num_steps)
         reward = self._env.step(action_choice, num_steps=self._num_steps)
         reward *= 10
+        reward = max(0.0, reward) # make it so it only gets positive rewards
         terminated = not self._env.is_running()
         return state[self.obv_type], reward, terminated
         #return state['RGB'], reward, terminated
