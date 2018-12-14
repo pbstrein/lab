@@ -19,7 +19,7 @@ import networks as nets
 
 
 class DMLabEnvironmentFactory(EnvironmentFactory):
-    def __init__(self, fps=60, height=480, width=640):
+    def __init__(self, fps=60, height=480, width=640, map=None):
         self.fps = fps
         self.height = height
         self.width = width
@@ -53,7 +53,7 @@ class DMLabEnvironment(RLEnvironment):
     ACTION_LIST = list(six.viewvalues(ACTIONS))
 
     _action_spec = None
-    def __init__(self, fps=60, height=480, width=640):
+    def __init__(self, fps=60, height=480, width=640, room=None):
         super(DMLabEnvironment, self).__init__()
         #self._env = gym.make('CartPole-v0')
         self._num_steps = 1
@@ -66,7 +66,7 @@ class DMLabEnvironment(RLEnvironment):
         #room = 'tests/empty_room_test'
         #room = 'demos/set_instruction'
         #room = 'seekavoid_arena_01'
-        room = 'nav_chasm'
+        #room = 'nav_chasm'
         #room = nav_chasm
 	#self._env = deepmind_lab.Lab(room, ['RGB_INTERLEAVED'], config=config)
 	#self._env = deepmind_lab.Lab(room, ['RGB'], config=config)
@@ -283,7 +283,7 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
     print("save_model_loc: ", save_model_loc)
     print("load_model_loc: ", load_model_loc)
 
-    factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width)
+    factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width, room=level)
     game_instance = factory.new()
     screen_size = game_instance.get_screen_size()
     actions = game_instance.get_actions()
@@ -406,7 +406,7 @@ if __name__ == '__main__':
     parser.add_argument('--runfiles_path', type=str, default=None,
                       help='Set the runfiles path to find DeepMind Lab data')
     parser.add_argument('--level_script', type=str,
-                      default='demos/set_instruction',
+                      default='bad',
                       help='The environment level script to load')
     #parser.add_argument('--record', type=str, default=None,
                       #help='Record the run to a demo file')
