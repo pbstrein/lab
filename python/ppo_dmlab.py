@@ -274,7 +274,7 @@ class DMLabValueNetwork(nn.Module):
         return value
 
 
-def main(length, width, height, fps, level, train, save_model_loc, load_model_loc, train_device, num_threads):
+def main(length, width, height, fps, level, train, save_model_loc, load_model_loc, train_device, num_threads, num_epochs):
     print("length: ", length)
     print("width: ", width)
     print("height: ", height)
@@ -285,6 +285,7 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
     print("load_model_loc: ", load_model_loc)
     print("train_device", train_device)
     print("num_threads", num_threads)
+    print("num_epochs", num_epochs)
 
     factory = DMLabEnvironmentFactory(fps=fps, height=height, width=width, room=level)
     game_instance = factory.new()
@@ -342,7 +343,7 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
             #gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2)
         #ppo(factory, policy, value, multinomial_likelihood, epochs=2, rollouts_per_epoch=1, max_episode_length=length,
             #gamma=0.99, policy_epochs=2, batch_size=256, lr=1e-4, weight_decay=0.0, environment_threads=2, data_loader_threads=2)
-        ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=75, rollouts_per_epoch=4, max_episode_length=length,
+        ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=num_epochs, rollouts_per_epoch=4, max_episode_length=length,
             gamma=0.99, policy_epochs=3, batch_size=256, lr=1e-6, weight_decay=0.0, environment_threads=num_threads, data_loader_threads=num_threads, save_model=save_model_loc,
             csv_file=csv_loc, reward_threshold=650, device=device)
         #ppo(factory, policy, value, multinomial_likelihood, embedding_net=conv, epochs=1, rollouts_per_epoch=1, max_episode_length=length,
@@ -419,6 +420,9 @@ if __name__ == '__main__':
     parser.add_argument('--num-threads', type=int,
                       default=1,
                       help='The type of device that trains the networks')
+    parser.add_argument('--num-epochs', type=int,
+                      default=75,
+                      help='The type of device that trains the networks')
     #parser.add_argument('--record', type=str, default=None,
                       #help='Record the run to a demo file')
     #parser.add_argument('--demo', type=str, default=None,
@@ -430,4 +434,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     main(args.length, args.width, args.height, args.fps, args.level_script,
-            args.train, args.save_model, args.load_model, args.train_device, args.num_threads)
+            args.train, args.save_model, args.load_model, args.train_device, args.num_threads, args.num_epochs)
