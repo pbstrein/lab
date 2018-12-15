@@ -83,7 +83,6 @@ class DMLabEnvironment(RLEnvironment):
         Returns observation (np.ndarray), r (float), t (boolean)
         """
         #s, r, t, _ = self._env.step(action.item(), num_steps=self._num_steps)
-        state = self._env.observations()
         # turn the action index into an array of actions
 	action_choice = self.ACTION_LIST[action.item()]
 
@@ -92,6 +91,7 @@ class DMLabEnvironment(RLEnvironment):
         reward *= 10
         reward = max(0.0, reward) # make it so it only gets positive rewards
         terminated = not self._env.is_running()
+        state = self._env.observations()
         return state[self.obv_type], reward, terminated
         #return state['RGB'], reward, terminated
         #return state['RGB_INTERLEAVED'], reward, terminated
@@ -312,14 +312,15 @@ def main(length, width, height, fps, level, train, save_model_loc, load_model_lo
         POLICY_LOC = load_model_loc + policy_file_name
         VALUE_LOC = load_model_loc + value_file_name
 
+        device = train_device
         print("loading conv network from : ", CONV_LOC)
-        conv.load_state_dict(torch.load(CONV_LOC))
+        conv.load_state_dict(torch.load(CONV_LOC, map_location=device))
 
         print("loading policy network from : ", POLICY_LOC)
-        policy.load_state_dict(torch.load(POLICY_LOC))
+        policy.load_state_dict(torch.load(POLICY_LOC, map_location=device))
 
         print("loading value network from: ", VALUE_LOC)
-        value.load_state_dict(torch.load(VALUE_LOC))
+        value.load_state_dict(torch.load(VALUE_LOC, map_location=device))
 
 
     if train:
