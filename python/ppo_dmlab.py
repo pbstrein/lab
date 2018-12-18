@@ -89,7 +89,7 @@ class DMLabEnvironment(RLEnvironment):
         #reward = self._env.step(action.item(), num_steps=self._num_steps)
         reward = self._env.step(action_choice, num_steps=self._num_steps)
         reward *= 10
-        reward = max(0.0, reward) # make it so it only gets positive rewards
+        #reward = max(0.0, reward) # make it so it only gets positive rewards
         terminated = not self._env.is_running()
         state = self._env.observations()
         return state[self.obv_type], reward, terminated
